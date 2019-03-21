@@ -1,0 +1,248 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/static/js/libgif.js"></script>
+<title>MoodAnimator</title>
+</head>
+      <body>
+        <div class="container" "display":"inline-block">
+    <h2>MoodAnimator</h2>
+    <button class="btn btn-success btn-lg" type="button"><a href="/">Home</a></button>
+    <button class="btn btn-success btn-lg" type="button"><a href="/">Upload Another</a></button>
+    <center>
+  <br id="insertHere">
+  <img id="gif" src="" rel:animated_src="" rel:auto_play="0"/>
+  <!-- <img id="original_gif" src="" rel:animated_src="" rel:auto_play="0"/> -->
+  <img id="test" src=""/>
+  <br>
+</center>
+  </div>
+         <script type="text/javascript">
+            var score = {{ data.score }};
+            var tempo = {{ data.tempo }};
+            var beats={{ data.beats }};
+            var mood;
+
+            console.log(beats);
+            var which_gif;
+            var gif_dict = {
+              "excited" : "/static/images/3-5-excited.gif", // excited
+              "neutral" : "/static/images/1-13-neutral.gif", // neutral
+              "happy" : "/static/images/1-3-5-happy.gif", // happy
+              "sad" : "/static/images/sad.gif",// sad
+              "devastated" : "/static/images/1-8-15-22-29-36-devastated.gif",//devastated
+            };
+            var frame_dict = {
+                "excited" : [11,23], //excited
+                "neutral" : [0,12], //neutral chicken
+                "happy" : [0, 2], //happy adventure time
+                "sad":[0,8,16,24,32,40], //sad man
+                "devastated": [0,7,14,21,28,35], //devastated bear
+              };
+              if (score<0.25) {
+                which_gif=gif_dict["devastated"];
+                mood="devastated";
+              }
+              else if (score<0.4) {
+                which_gif=gif_dict["sad"];
+                mood="sad";
+              }
+              else if (score<0.6) {
+                which_gif=gif_dict["neutral"];
+                mood="neutral";
+              }
+              else if (score<0.8) {
+                which_gif=gif_dict["happy"];
+                mood="happy";
+
+              }
+              else {
+                which_gif=gif_dict["excited"];
+                mood="excited";
+
+              }
+
+              var sup1;
+              var paused;
+              var frames;
+              var frame_cnt;
+              var beats;
+              var beat_cnt;
+              var duration;
+              var offset;
+              var snd;
+              var diff;
+              var beat_diff;
+              var one_frame;
+              var between;
+              var first;
+              var between_cnt;
+              var frame_test;
+              var beats;
+              var song_flag = false;
+              var showing_original=false;
+              $("#gif").remove();
+              $(".jsgif").remove();
+              $("<img id=\"gif\" />").insertAfter("#insertHere");
+              $("#gif").attr("src", which_gif);
+              $("#gif").attr("rel:animated_src", which_gif);
+              $("#gif").attr("rel:auto_play", 0);
+              console.log(which_gif);
+              $(".playpause").css("visibility", "visible");
+
+
+
+              $("#test").remove();
+              $("<img id=\"test\"/>").insertAfter("#gif");
+              $("#test").attr("src", which_gif);
+              $("#test").attr("rel:animated_src", which_gif);
+              $("#test").attr("rel:auto_play", "0");
+              $("#test").css("display", "none");
+
+              load_gif_info(beats);
+
+              function load_gif_info(beats) {
+        if(song_flag == 1) {
+          snd.pause();
+          song_flag = 0;
+        }
+        snd=new Audio("/static/audio/user.wav");
+        song_flag = 1;
+        sup1 = new SuperGif({ gif: document.getElementById('gif') } );
+        sup1.load();
+
+
+
+        frames = frame_dict[mood];
+        frame_cnt = 0;
+
+        beat_cnt = 0;
+        duration;
+        offset = 0,
+        paused = true;
+        diff=frames[1]-frames[0]-1;
+        beat_diff=beats[1]-beats[0];
+        if (diff==1){
+          diff=2;
+        }
+        beat_diff_array=[];
+        for (var i=0;i<beats.length-1;i++) {
+          beat_diff_array.push(beats[i+1]-beats[i]);
+        }
+        new_between=[];
+        for (var i=0;i<beat_diff_array.length;i++) {
+          one_frame=beat_diff_array[i]/diff;
+          first=beats[i];
+          var len=Math.round(beat_diff_array[i]/one_frame);
+          if (len==2) {
+            new_between.push(first+one_frame);
+          }
+          else {
+            for (var j=0;j<len;j++) {
+              new_between.push(first+one_frame*j);
+            }
+          }
+
+        }
+
+
+
+
+        between_cnt=0;
+        frame_test=0;
+
+        // sup1.load();
+        render();
+      }
+        function start_stopwatch(evt) {
+          if (paused) {
+            paused = false;
+            offset -= Date.now();
+            snd.play();
+            // sup2.play();
+
+            render();
+          }
+        }
+
+        function stop_stopwatch(evt) {
+          if (!paused) {
+            paused = true;
+            offset += Date.now();
+            snd.pause();
+            // sup2.pause();
+            render();
+          }
+        }
+
+        function render() {
+          var value = paused ? offset : Date.now() + offset;
+          var seconds = (value / 1000);
+          seconds = Math.round(seconds * 100) / 100; // fix to 2 digits
+          console.log (seconds, beats[beat_cnt]);
+          if (seconds - 0.1 <= beats[beat_cnt] && beats[beat_cnt] <= seconds + 0.1) {
+            console.log("matched!!!");
+            sup1.move_to(frames[frame_cnt]);
+            // console.log(frames[frame_cnt]);
+            frame_cnt++;
+            // console.log(frames[frame_cnt]);
+            frame_cnt = frame_cnt % frames.length;
+            beat_cnt++;
+            console.log(frames[frame_cnt]);
+            console.log(frame_test);
+
+            frame_test=frames[frame_cnt];
+            frame_test++;
+            // console.log(frames[frame_cnt]);
+            // diff=8;
+          }
+          else if (beat_cnt == beats.length) {
+            console.log("No more beat information!");
+          }
+          else if (seconds - 0.1 <= new_between[between_cnt] && new_between[between_cnt] <= seconds + 0.1) {
+            console.log("MATCH IN BETWEEN");
+            console.log(frame_test);
+
+            console.log("moving here")
+            sup1.move_relative(1);
+            frame_test++;
+            frame_test = frame_test % 5;
+
+            between_cnt++;
+          }
+
+          if(!paused) {
+            requestAnimationFrame(render);
+          }
+        }
+        function show_original(){
+          console.log("here");
+          if (showing_original) {
+            $("#test").css("display", "none");
+            $("#showoriginal").html("Show Original Gif");
+            showing_original=false;
+          }
+          else{
+            $("#test").css("display", "inline");
+            $("#showoriginal").html("Hide Original Gif");
+            showing_original=true;
+          }
+
+
+
+
+        }
+
+            </script>
+            <center>
+      			<a href="javascript:;" class="playpause" style="visibility: visible" onmousedown="start_stopwatch()">Start Beat Track</a>
+            <a href="javascript:;" class="playpause" style="visibility: visible" onmousedown="stop_stopwatch()">Pause Beat Track</a>
+            <a href="javascript:;" id="showoriginal" class="playpause" style="visibility: visible" onmousedown="show_original()">Show Original Gif</a>
+            </center>
+          </body>
+        <!-- <script type="text/javascript" src="app.js"></script> -->
+</html>
